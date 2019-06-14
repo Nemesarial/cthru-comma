@@ -5,22 +5,31 @@ const { findFileInAncestry, mergeFileObjects } = require('../src/util/fs')
 const fs = require('fs')
 const path = require('path')
 const tabtab = require('tabtab')
+const debug = require('debug')('main')
 
 let dfiles = [...findFileInAncestry('.,.js', process.cwd())]
 let args = Array.prototype.slice.call(process.argv, 2)
+let fInit = args.length > 1 ? args[1] : require('os').homedir()
 const { executeCommand, commandList, getCommand } = require('../index')
 
-function initFolder (folder) {
+function initFolder (folder, cb) {
     fs.stat(folder, (err, stat) => {
         if (err) throw new Error(err)
         if (stat.isDirectory() && (stat.mode & fs.constants.S_IWUSR)) {
             let file = path.resolve(folder, '.,.js')
             out(`Initializing ${file}`)
+            debug('A')
             fs.stat(file, (err, stats) => {
+                debug('B')
                 if (err) {
+                    debug('C')
                     try {
                         fs.writeFileSync(file, 'module.exports={\n\tll:{ command:\'ls -lah\', subCommands:{ r: \'ls -lahR\'}}\n}')
+                        typeof cb === 'function' && cb()
                     } catch (e) { throw new Error(e) }
+                } else {
+                    debug('D')
+                    typeof cb === 'function' && cb()
                 }
             })
         } else {
@@ -31,8 +40,9 @@ function initFolder (folder) {
 
 function editFolder (folder) {
     let file = path.resolve(folder, '.,.js')
+    debug(file)
     fs.stat(file, (err, stats) => {
-        if (err) {
+        if (!err) {
             try {
                 executeCommand(`${process.env.EDITOR || 'nano'} ${file}`)
             } catch (e) { throw new Error(e) }
@@ -42,15 +52,13 @@ function editFolder (folder) {
 
 function installCompletion () {
     tabtab.install({ name: ',', completer: ',-complete' })
-        .then(() => out('Completion installed'))
+        .then(() => out('Completion installed') && initFolder(require('os').homedir()))
         .catch(err => { throw new Error(err) })
 }
 
 function uninstallCompletion () {
     tabtab.uninstall({ name: ',' }).catch(err => console.error('Completion not uninstalled', err))
 }
-
-let fInit = args.length > 1 ? args[1] : require('os').homedir()
 
 if (dfiles.length) {
     let def = mergeFileObjects(dfiles, true)
@@ -91,15 +99,20 @@ if (dfiles.length) {
             uninstallCompletion()
             break
 
+        case '--files':
+            out().h1('File List')
+            dfiles.forEach(dFile => out.pad(2).w(chalk.blue(chalk.bold(`${dFile}`)))())
+            out()
+            break
+
         case '--init':
             initFolder(fInit)
             break
 
         case '--edit':
-            initFolder(fInit)
-                .then(() => {
-                    editFolder(fInit)
-                })
+            initFolder(fInit, () => {
+                editFolder(fInit)
+            })
             break
         default:
             executeCommand(command)
@@ -124,10 +137,9 @@ if (dfiles.length) {
             break
 
         case '--edit':
-            initFolder(fInit)
-                .then(() => {
-                    editFolder(fInit)
-                })
+            initFolder(fInit, () => {
+                editFolder(fInit)
+            })
             break
         default:
             out('Cannot find a definition file. To start one do `al --init [filePath=~]`')

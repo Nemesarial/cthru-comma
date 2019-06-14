@@ -1,4 +1,5 @@
 const debug = require('debug')('index')
+const out = require('@cthru/console-writer')({wrap: 120})
 // find the first .,.js
 function commandList (commandDefs) {
     function commandArray (commandDefs, prefix) {
@@ -52,11 +53,11 @@ function getCommand (commandList, args) {
 function executeCommand (command) {
     if (command) {
         if (typeof command === 'function') {
-            console.log(command())
+            out(command())
         } else {
             const { spawn } = require('child_process')
             const cmdArr = command.split(' ')
-            spawn(cmdArr.shift(), cmdArr.filter(arg => !!arg), { cwd: process.cwd(), stdio: 'inherit' })
+            spawn(cmdArr.shift(), cmdArr.filter(arg => !!arg), { cwd: process.cwd(), stdio: 'inherit' }).unref()
         }
     }
 }

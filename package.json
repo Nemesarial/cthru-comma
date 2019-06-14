@@ -1,6 +1,6 @@
 {
   "name": "@cthru/comma",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Slightly more advanced Aliases",
   "main": "index.js",
   "bin": {
@@ -9,7 +9,7 @@
   },
   "scripts": {
     "start": "node index.js ll src/*",
-    "postinstall": ", --install-completion && , --init",
+    "postinstall": ", --install-completion && , --edit",
     "preuninstall": ", --uninstall-completion"
   },
   "author": "Mark Holtzhausen <nemesarial@gmail.com>",
