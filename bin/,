@@ -1,0 +1,94 @@
+#!/usr/bin/env node
+const out = require('@cthru/console-writer')({ wrap: 120 })
+const chalk = require('chalk')
+const { findFileInAncestry, mergeFileObjects } = require('../src/util/fs')
+const fs = require('fs')
+const path = require('path')
+const tabtab = require('tabtab')
+
+let dfiles = [...findFileInAncestry('.al.js', process.cwd())]
+let args = Array.prototype.slice.call(process.argv, 2)
+const { executeCommand, commandList, getCommand } = require('../index')
+
+function initFolder (folder) {
+    fs.stat(folder, (err, stat) => {
+        if (err) throw new Error(err)
+        if (stat.isDirectory() && (stat.mode & fs.constants.S_IWUSR)) {
+            let file = path.resolve(folder, '.al.js')
+            out(`Initializing ${file}`)
+            fs.stat(file, (err, stats) => {
+                if (err) {
+                    try {
+                        fs.writeFileSync(file, 'module.exports={\n\tll:{ command:\'ls -lah\', subCommands:{ r: \'ls -lahR\'}}\n}')
+                    } catch (e) { throw new Error(e) }
+                }
+                if (!err) executeCommand(`${process.env.EDITOR || 'nano'} ${file}`)
+            })
+        } else {
+            out(`${folder} is not a folder, or cannot be written to`)
+        }
+    })
+}
+
+function installCompletion () {
+    tabtab.install({ name: ',', completer: ',-complete' })
+        .then(() => out('Completion installed'))
+        .catch(err => { throw new Error(err) })
+}
+
+if (dfiles.length) {
+    let def = mergeFileObjects(dfiles, true)
+
+    let list = commandList(def)
+    let command = getCommand(list, Array.prototype.slice.call(process.argv, 2))
+
+    let cmd = args.length > 0 ? args[0] : ''
+    switch (cmd) {
+        case '--help':
+        case '':
+        case '--list':
+            let filter = args.length > 1 ? args[1] : null
+            out().h1('Command list')()
+            let filteredList = (() => {
+                if (filter) {
+                    let nlist = {}
+                    for (let alias in list) {
+                        if (alias.indexOf(filter) >= 0)nlist[alias] = list[alias]
+                    }
+                    return nlist
+                } else {
+                    return list
+                }
+            })()
+            for (let alias in filteredList) {
+                out.pad(2).w(chalk.blue(chalk.bold(`${alias}`))).tab(3)(chalk.blue(list[alias].description || ''))
+                out.tab(2)(chalk.italic(chalk.grey(`${typeof list[alias].command === 'function' ? 'function' : list[alias].command}`)))
+                out()
+            }
+            out()
+            break
+        case '--install-completion':
+            installCompletion()
+            break
+
+        case '--init':
+        case '--edit':
+            initFolder(args.length > 1 ? args[1] : require('os').homedir())
+            break
+        default:
+            executeCommand(command)
+    }
+} else {
+    let cmd = args.length > 0 ? args[0] : ''
+    switch (cmd) {
+        case '--install-completion':
+            installCompletion()
+            break
+        case '--init':
+        case '--edit':
+            initFolder(args.length > 1 ? args[1] : require('os').homedir())
+            break
+        default:
+            out('Cannot find a definition file. To start one do `al --init [filePath=~]`')
+    }
+}

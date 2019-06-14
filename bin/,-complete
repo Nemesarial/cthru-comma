@@ -1,0 +1,26 @@
+#!/usr/bin/env node
+const out = require('@cthru/console-writer').string({ wrap: 120 })
+const { findFileInAncestry, mergeFileObjects } = require('../src/util/fs')
+const tabtab = require('tabtab')
+const debug = require('debug')('al-complete')
+
+let dfiles = [...findFileInAncestry('.al.js', process.cwd())]
+debug({ dfiles })
+
+let env = tabtab.parseEnv(process.env)
+let search = env.lastPartial
+
+const { commandList } = require('../index')
+
+if (dfiles.length > 0) {
+    let def = mergeFileObjects(dfiles,true)
+    debug({def})
+
+    let list = commandList(def)
+    let filteredList = Object.keys(list).filter(item => item.indexOf(search) > -1)
+        .map(item => list[item].description ? { name: item, description: list[item].description } : item)
+    debug({ list, filteredList })
+    tabtab.log(filteredList)
+} else {
+    out('no file found')
+}
