@@ -4,7 +4,7 @@ const { findFileInAncestry, mergeFileObjects } = require('../src/util/fs')
 const tabtab = require('tabtab')
 const debug = require('debug')('al-complete')
 
-let dfiles = [...findFileInAncestry('.al.js', process.cwd())]
+let dfiles = [...findFileInAncestry('.,.js', process.cwd())]
 debug({ dfiles })
 
 let env = tabtab.parseEnv(process.env)

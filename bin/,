@@ -6,7 +6,7 @@ const fs = require('fs')
 const path = require('path')
 const tabtab = require('tabtab')
 
-let dfiles = [...findFileInAncestry('.al.js', process.cwd())]
+let dfiles = [...findFileInAncestry('.,.js', process.cwd())]
 let args = Array.prototype.slice.call(process.argv, 2)
 const { executeCommand, commandList, getCommand } = require('../index')
 
@@ -14,7 +14,7 @@ function initFolder (folder) {
     fs.stat(folder, (err, stat) => {
         if (err) throw new Error(err)
         if (stat.isDirectory() && (stat.mode & fs.constants.S_IWUSR)) {
-            let file = path.resolve(folder, '.al.js')
+            let file = path.resolve(folder, '.,.js')
             out(`Initializing ${file}`)
             fs.stat(file, (err, stats) => {
                 if (err) {
@@ -22,10 +22,20 @@ function initFolder (folder) {
                         fs.writeFileSync(file, 'module.exports={\n\tll:{ command:\'ls -lah\', subCommands:{ r: \'ls -lahR\'}}\n}')
                     } catch (e) { throw new Error(e) }
                 }
-                if (!err) executeCommand(`${process.env.EDITOR || 'nano'} ${file}`)
             })
         } else {
             out(`${folder} is not a folder, or cannot be written to`)
+        }
+    })
+}
+
+function editFolder (folder) {
+    let file = path.resolve(folder, '.,.js')
+    fs.stat(file, (err, stats) => {
+        if (err) {
+            try {
+                executeCommand(`${process.env.EDITOR || 'nano'} ${file}`)
+            } catch (e) { throw new Error(e) }
         }
     })
 }
@@ -36,6 +46,12 @@ function installCompletion () {
         .catch(err => { throw new Error(err) })
 }
 
+function uninstallCompletion () {
+    tabtab.uninstall({ name: ',' }).catch(err => console.error('Completion not uninstalled', err))
+}
+
+let fInit = args.length > 1 ? args[1] : require('os').homedir()
+
 if (dfiles.length) {
     let def = mergeFileObjects(dfiles, true)
 
@@ -43,6 +59,7 @@ if (dfiles.length) {
     let command = getCommand(list, Array.prototype.slice.call(process.argv, 2))
 
     let cmd = args.length > 0 ? args[0] : ''
+
     switch (cmd) {
         case '--help':
         case '':
@@ -70,10 +87,19 @@ if (dfiles.length) {
         case '--install-completion':
             installCompletion()
             break
+        case '--uninstall-completion':
+            uninstallCompletion()
+            break
 
         case '--init':
+            initFolder(fInit)
+            break
+
         case '--edit':
-            initFolder(args.length > 1 ? args[1] : require('os').homedir())
+            initFolder(fInit)
+                .then(() => {
+                    editFolder(fInit)
+                })
             break
         default:
             executeCommand(command)
@@ -84,9 +110,24 @@ if (dfiles.length) {
         case '--install-completion':
             installCompletion()
             break
+        case '--uninstall-completion':
+            uninstallCompletion()
+            break
+
+        case '--files':
+            out().h1('File List')
+            dfiles.forEach(dFile => out.pad(2).w(chalk.blue(chalk.bold(`${dFile}`))))
+            break
+
         case '--init':
+            initFolder(fInit)
+            break
+
         case '--edit':
-            initFolder(args.length > 1 ? args[1] : require('os').homedir())
+            initFolder(fInit)
+                .then(() => {
+                    editFolder(fInit)
+                })
             break
         default:
             out('Cannot find a definition file. To start one do `al --init [filePath=~]`')

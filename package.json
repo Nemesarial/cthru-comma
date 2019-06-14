@@ -9,7 +9,8 @@
   },
   "scripts": {
     "start": "node index.js ll src/*",
-    "postinstall": ", --install-completion"
+    "postinstall": ", --install-completion && , --init",
+    "preuninstall": ", --uninstall-completion"
   },
   "author": "Mark Holtzhausen <nemesarial@gmail.com>",
   "license": "ISC",
@@ -20,5 +21,6 @@
     "@cthru/console-writer": "^1.1.1",
     "chalk": "^2.4.2",
     "tabtab": "^3.0.2"
-  }
+  },
+  "repository": "https://github.com/Nemesarial/cthru-comma.git"
 }

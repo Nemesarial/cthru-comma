@@ -1,5 +1,5 @@
 const debug = require('debug')('index')
-// find the first .al.js
+// find the first .,.js
 function commandList (commandDefs) {
     function commandArray (commandDefs, prefix) {
         let commands = []
@@ -17,7 +17,6 @@ function commandList (commandDefs) {
                 commands.push({ alias: fullAlias, ...commandDef })
                 if (commandDef.subCommands) {
                     let ncommands = commandArray(commandDef.subCommands, fullAlias)
-                    // debug({ commands, ncommands, commandDef })
                     commands = [...commands, ...ncommands]
                 }
             }
